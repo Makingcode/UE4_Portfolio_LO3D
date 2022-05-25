@@ -20,4 +20,35 @@ https://www.youtube.com/watch?v=oPXyp3uiNyk
 &nbsp;
 ## 기술설명서
 
+### 캐릭터 이동
+```c
+void AMainCharacter::MoveForward(float Value)
+{
+    if (Controller && Value != 0&&!bPickUp)
+    {
+       const FRotator Rotation = Controller->GetControlRotation();
+       const FRotator YawRotation = FRotator{ 0.f,Rotation.Yaw,0.f };
+       FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+       AddMovementInput(Direction, Value);
+    }
+} 
+
+void AMainCharacter::MoveRight(float Value)
+{
+    if (Controller && Value != 0&&!bPickUp)
+    {
+      const FRotator Rotation = Controller->GetControlRotation();
+      const FRotator YawRotation = FRotator{ 0.f,Rotation.Yaw,0.f };
+      FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+      AddMovementInput(Direction, Value);
+    }
+}
+    
+```
+Character Controller의 Yaw값을 구해 회전변환행렬인 FRotationMatrix를 이용
+X,Y축에 따라 캐릭터의 전후좌우 이동 구현
+
+
+
+
 
