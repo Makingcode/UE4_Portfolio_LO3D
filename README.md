@@ -120,8 +120,84 @@ for (int i = 0; i < INVENTORY_CAPACITY; i++)
 * 무기타입별 슬롯을 만들며 게임시작시 Add를 통해 nullptr을 담은 배열을 생성      
 
 
+### 아이템 습득
+```c
+if (MainAnimInstance)
+{
+	bPickUp = true;
+	MainAnimInstance->Montage_Play(PickUpMontage);
+	MainAnimInstance->Montage_JumpToSection("PickUpStart", PickUpMontage);
+	FTimerHandle PickUpHandle;
+	GetWorldTimerManager().SetTimer(PickUpHandle, this, &AMainCharacter::PickUpEnd, 0.71f);
+}
+
+case EWeaponType::EWT_MainWeapon:
+{
+	MainWeaponSlot[0] = gun;
+	MainWeaponSlot[0]->SetItemState(EItemState::EIS_EquipSpare);
+	EquipSpare->AttachActor(MainWeaponSlot[0], GetMesh());
+}break;
+
+```
+* 라인트레이스된 아이템을 습득하며 습득시 습득 애니메이션이 실행되고 GetWorldTimerManager을 통해 애니메이션 이후   
+아이템 습득을 수행함   
+* 아이템 습득시 캐릭터 스켈레탈 메쉬의 소켓에 부착되며 아이템 슬롯에 등록되게 된다
+
+### 아이템 교체
+```c
+switch (GetEquippedWeapon()->GetWeaponType())
+{
+	case EWeaponType::EWT_MainWeapon:
+	{
+
+	}break;
+	case EWeaponType::EWT_SubWeapon:
+	{
+		AnimInstance->Montage_Play(SwapMontage);
+		AnimInstance->Montage_JumpToSection("NoEquipSwap", SwapMontage);
+		GetWorldTimerManager().SetTimer(SwapHandle, this, &AMainCharacter::SwapMainWeapon, 0.8f);
+	}break;
+	case EWeaponType::EWT_BoomWeapon:
+	{
+		AnimInstance->Montage_Play(LauncherSwapMontage);
+		AnimInstance->Montage_JumpToSection("EquipLauncher", LauncherSwapMontage);
+		GetWorldTimerManager().SetTimer(SwapHandle, this, &AMainCharacter::SwapMainWeapon, 0.69f);
+	}break;
+	case EWeaponType::EWT_SpecialWeapon:
+	{
+		AnimInstance->Montage_Play(SpecialSwapMontage);
+		AnimInstance->Montage_JumpToSection("EquipSpecial", SpecialSwapMontage);
+		GetWorldTimerManager().SetTimer(SwapHandle, this, &AMainCharacter::SwapMainWeapon, 0.8f);
+	}break;
+}
+
+if (MainWeaponSlot[0] != nullptr)
+{
+	EquipWeapon(MainWeaponSlot[0]);
+	if (SubWeaponSlot[0] != nullptr)
+	{
+		SubWeaponSlot[0]->SetItemState(EItemState::EIS_EquipSpare);
+		EquipSpare2->AttachActor(SubWeaponSlot[0], GetMesh());
+	}
+	if (BoomWeaponSlot[0] != nullptr)
+	{
+		BoomWeaponSlot[0]->SetItemState(EItemState::EIS_EquipSpare);
+		EquipSpare3->AttachActor(BoomWeaponSlot[0], GetMesh());
+	}
+	if (SpecialWeaponSlot[0] != nullptr)
+	{
+		SpecialWeaponSlot[0]->SetItemState(EItemState::EIS_EquipSpare);
+		EquipSpare4->AttachActor(SpecialWeaponSlot[0], GetMesh());
+	}
+}
+
+```
+* 아이템 교체시 교체 모션이 작동되며, GetWorldTimerManager를 이용하여 모션 후에 교체기능이 동작하도록 구현
+* 교체시 이전 장비는 장착에서 해제되며 캐릭터 등쪽에 있는 무기 소켓으로 부착되게 됨
+* 신규 장착하는 장비는 오른손의 소켓에 부착되게 됨   
 
 
+### 발사체
 
 
 
