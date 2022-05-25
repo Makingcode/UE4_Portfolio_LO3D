@@ -199,6 +199,138 @@ if (MainWeaponSlot[0] != nullptr)
 
 ### 발사체
 
+* 일반탄
+```c
+void ABullet::DoDamage(AActor* HitActor)
+{
+	if (HitActor == nullptr) return;
+	auto EnemyChar = Cast<AMainCharacter>(HitActor);
+	auto MainChar = Cast<AMainCharacter>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
 
+	if (EnemyChar)
+	{
+		UGameplayStatics::ApplyDamage(EnemyChar, BulletDamage, nullptr, this, UDamageType::StaticClass());
+		UAISense_Damage::ReportDamageEvent(GetWorld(), EnemyChar, MainChar, BulletDamage, EnemyChar->GetActorLocation(), EnemyChar->GetActorLocation());
+		Destroy();	
+	}
 
+}
+
+```
+
+* 로켓, 유탄
+```c
+if (HitComponent)
+{
+	if (Hit.bBlockingHit)
+	{
+	UGameplayStatics::SpawnEmitterAtLocation(World, BombImpact, Hit.Location,FRotator(0),FVector(10.f,10.f,10.f));
+	UGameplayStatics::ApplyRadialDamage(World, 300.f, Hit.Location, 500.f, DamageType, ignoredActors, this, nullptr, false, ECollisionChannel::ECC_Pawn);
+	UGameplayStatics::PlaySound2D(World, BoomSound, 5.f);
+
+	Destroy();
+	}
+}
+```
+* 일반탄은 총알 오버랩시 ApplyDamage를 이용하여 데미지를 주며, 로켓이나 유탄등은 ApplyRadialDamage를 이용하여 Hit 지점에서 유효범위 안에 있는 모든 캐릭터들에게    
+데미지를 줄 수 있게 구현
+
+* 캐릭터는 TakeDamage를 통해 전해진 데미지를 받으며 체력이 0 이하면 죽는 것을 구현
+```c
+float AMainCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	SetCharacterState(ECharacterState::ECS_Battle);
+	if (Health - DamageAmount <= 0.f)
+	{
+		Health = 0.f;
+		bIsDead = true;
+		
+
+		if (bIsDead)
+		{
+			Dead();
+		}
+	}
+	else
+	{
+		bIsDead = false;
+		Health -= DamageAmount;
+	}
+	return DamageAmount;
+}
+```
+
+### 줌 기능
+
+```c
+if (EquippedWeaponGun->GetIsScope())
+{
+	FPPCamera->AttachToComponent(EquippedWeaponGun->GetItemMesh(), FAttachmentTransformRules::KeepRelativeTransform, "SniperADS");
+	FPPCamera->SetFieldOfView(15.f);
+	TPPCamera->SetActive(false);
+	FPPCamera->SetActive(true);
+	bUseControllerRotationPitch = true;
+	GetMesh()->HideBoneByName("Left Wrist", EPhysBodyOp::PBO_None);
+}
+else
+{
+	this->SetActorRotation(FRotator(0, 90, 0));
+	FPPCamera->SetActive(false);
+	FPPCamera->SetFieldOfView(70.f);
+	TPPCamera->SetActive(true);
+	bUseControllerRotationPitch = false;
+	GetMesh()->UnHideBoneByName("Left Wrist");
+}
+
+```
+* 1인칭용 카메라를 만들어 줌을 하면 1인칭 카메라를 무기의 Scope 소켓에 부착하고 SetActive를 통해 활성화
+* 3인칭 카메라는 SetActive를 false 하여 비활성화를 시키며 카메라의 시점전환을 구현
+
+### AI
+
+```c
+AGunEnemyAIController::AGunEnemyAIController()
+{
+	SetPerceptionComponent(*CreateOptionalDefaultSubobject<UAIPerceptionComponent>(TEXT("AI Perception")));
+	SightConfig = CreateOptionalDefaultSubobject<UAISenseConfig_Sight>(TEXT("Sight Config"));
+	HearingConfig = CreateOptionalDefaultSubobject<UAISenseConfig_Hearing>(TEXT("Hearing Config"));
+	DamageConfig = CreateOptionalDefaultSubobject<UAISenseConfig_Damage>(TEXT("Damage Config"));
+
+	SightConfig->SightRadius = AISightRadius;       //시야범위
+	SightConfig->LoseSightRadius = AILoseSightRadius;     
+	SightConfig->PeripheralVisionAngleDegrees = AIFieldOfView;  //주변시야각도
+	SightConfig->SetMaxAge(AISightAge);
+
+	SightConfig->DetectionByAffiliation.bDetectEnemies = true;
+	SightConfig->DetectionByAffiliation.bDetectNeutrals = true;
+	SightConfig->DetectionByAffiliation.bDetectFriendlies = true;
+
+	HearingConfig->DetectionByAffiliation.bDetectEnemies = true;
+	HearingConfig->DetectionByAffiliation.bDetectNeutrals = true;
+	HearingConfig->DetectionByAffiliation.bDetectFriendlies = true;
+
+	HearingConfig->SetMaxAge(10.f);
+
+	//그냥 PerceptionComponent만 만들면 세부 내용들이 표시가 안되기 때문에 설정
+	GetPerceptionComponent()->ConfigureSense(*SightConfig);
+	GetPerceptionComponent()->ConfigureSense(*HearingConfig);
+	GetPerceptionComponent()->ConfigureSense(*DamageConfig);
+
+}
+```
+* AI Perception을 이용하여 시야, 청각, 데미지에 반응하게 구현
+* 데미지 반응
+![4](https://user-images.githubusercontent.com/13048481/170184408-c75727eb-11e9-42bf-84e9-7dc60d79b7ce.png)
+```
+```
+* 청각 반응   
+![5](https://user-images.githubusercontent.com/13048481/170184801-72f5087b-e40d-4eed-988e-83e01fcc022d.png)
+```
+```
+* 시각 반응   
+![6](https://user-images.githubusercontent.com/13048481/170184795-56459593-fb66-4009-87ba-7169c261bc72.png)
+```
+```
+* 평상시   
+![7](https://user-images.githubusercontent.com/13048481/170184804-6113f812-f851-4a91-b356-7d17c01034f2.png)
 
